@@ -74,12 +74,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  const [warga] = useState(() => JSON.parse(localStorage.getItem('sys_warga')) || defaultWarga);
-  const [panitia] = useState(() => JSON.parse(localStorage.getItem('sys_panitia')) || defaultPanitia);
-  const [mudhohi] = useState(() => JSON.parse(localStorage.getItem('sys_mudhohi')) || defaultMudhohi);
-  const [hewan, setHewan] = useState(() => JSON.parse(localStorage.getItem('sys_hewan_v7')) || defaultHewan);
-  const [kupon, setKupon] = useState(() => JSON.parse(localStorage.getItem('sys_kupon_v7')) || generateKuponInit());
-  const [keuangan, setKeuangan] = useState(() => JSON.parse(localStorage.getItem('sys_keuangan')) || defaultKeuangan);
+  const [warga] = useState(() => JSON.parse(localStorage.getItem('sys_warga_v8')) || defaultWarga);
+  const [panitia] = useState(() => JSON.parse(localStorage.getItem('sys_panitia_v8')) || defaultPanitia);
+  const [mudhohi] = useState(() => JSON.parse(localStorage.getItem('sys_mudhohi_v8')) || defaultMudhohi);
+  const [hewan, setHewan] = useState(() => JSON.parse(localStorage.getItem('sys_hewan_v8')) || defaultHewan);
+  const [kupon, setKupon] = useState(() => JSON.parse(localStorage.getItem('sys_kupon_v8')) || generateKuponInit());
+  const [keuangan, setKeuangan] = useState(() => JSON.parse(localStorage.getItem('sys_keuangan_v8')) || defaultKeuangan);
   
   const [qrModal, setQrModal] = useState({ isOpen: false, data: null });
   const [pdfPreview, setPdfPreview] = useState({ isOpen: false, url: '', title: '' });
@@ -87,15 +87,17 @@ export default function App() {
   const [manualCode, setManualCode] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('sys_hewan_v7', JSON.stringify(hewan));
-    localStorage.setItem('sys_kupon_v7', JSON.stringify(kupon));
-    localStorage.setItem('sys_keuangan', JSON.stringify(keuangan));
-  }, [hewan, kupon, keuangan]);
+    localStorage.setItem('sys_warga_v8', JSON.stringify(warga));
+    localStorage.setItem('sys_panitia_v8', JSON.stringify(panitia));
+    localStorage.setItem('sys_mudhohi_v8', JSON.stringify(mudhohi));
+    localStorage.setItem('sys_hewan_v8', JSON.stringify(hewan));
+    localStorage.setItem('sys_kupon_v8', JSON.stringify(kupon));
+    localStorage.setItem('sys_keuangan_v8', JSON.stringify(keuangan));
+  }, [warga, panitia, mudhohi, hewan, kupon, keuangan]);
 
-// Bagian Kalkulasi Dashboard (Ganti bagian ini)
+  // --- LOGIKA KALKULASI REAKTIF ---
   const totalSapi = hewan.filter(h => h.jenis === 'Sapi').length;
   const totalKambing = hewan.filter(h => h.jenis === 'Kambing').length;
-  const totalMudhohi = mudhohi.length;
   const totalMasuk = keuangan.filter(k => k.jenis === 'Masuk').reduce((acc, curr) => acc + curr.nominal, 0);
   const totalKeluar = keuangan.filter(k => k.jenis === 'Keluar').reduce((acc, curr) => acc + curr.nominal, 0);
   const saldo = totalMasuk - totalKeluar;
@@ -106,6 +108,11 @@ export default function App() {
     { name: 'Disembelih', value: hewan.filter(h=>h.status==='Disembelih').length, color: '#f59e0b' },
     { name: 'Menunggu', value: hewan.filter(h=>h.status==='Menunggu').length, color: '#94a3b8' },
   ].filter(d => d.value > 0);
+
+  const barData = [
+    { name: 'Pemasukan', v: totalMasuk },
+    { name: 'Pengeluaran', v: totalKeluar }
+  ];
 
   const prosesKuponDigital = async (k, isPreview = false) => {
     const doc = new jsPDF({ format: [80, 80] });
@@ -133,6 +140,16 @@ export default function App() {
     else { doc.save(`${name}.pdf`); }
   };
 
+  const prosesValidasiKupon = (idKupon) => {
+    const found = kupon.find(k => k.id === idKupon);
+    if(!found) return setScanResult({ status:'error', pesan:'Tidak Terdaftar' });
+    if(found.status==='Sudah Diambil') return setScanResult({ status:'error', pesan:'SUDAH DIAMBIL' });
+    
+    setKupon(prev => prev.map(k => k.id === idKupon ? {...k, status:'Sudah Diambil'} : k));
+    setScanResult({ status:'success', pesan:`Berhasil: ${found.nama}` });
+    setManualCode('');
+  };
+
   useEffect(() => {
     if (activeTab === 'scan') {
       const scanner = new Html5QrcodeScanner("reader", { qrbox: 200, fps: 10 });
@@ -147,94 +164,136 @@ export default function App() {
       }, () => {});
       return () => { scanner.clear().catch(()=>{}); };
     }
-  }, [activeTab]);
+  }, [activeTab, kupon]);
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
-      {/* SIDEBAR */}
-      <aside className={`fixed md:sticky top-0 bottom-0 left-0 w-64 bg-[#059669] text-white flex flex-col shadow-xl z-30 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 flex items-center justify-between border-b border-emerald-700/50">
-          <div className="flex items-center gap-2"><div className="bg-amber-400 p-1.5 rounded-lg text-emerald-900 font-bold">Q</div><h1 className="font-bold text-lg">QurbanPro</h1></div>
-          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden"><X size={20}/></button>
+    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden relative">
+      
+      {/* SIDEBAR RESPONSIVE FIX (Menutup sempurna di HP) */}
+      <aside className={`fixed md:sticky top-0 bottom-0 left-0 w-64 bg-[#059669] text-white flex flex-col shadow-xl z-30 transition-transform duration-300 ease-in-out h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="p-6 flex items-center justify-between border-b border-emerald-700/50 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="bg-amber-400 p-1.5 rounded-lg text-emerald-900 font-bold">Q</div>
+            <h1 className="font-bold text-lg">QurbanPro</h1>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white"><X size={20}/></button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {menuItems.map(m => (
-            <button key={m.id} onClick={()=>{setActiveTab(m.id); setIsSidebarOpen(false)}} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${activeTab===m.id?'bg-white text-[#059669] font-bold shadow-sm':'hover:bg-emerald-800/40'}`}>
+            <button key={m.id} onClick={()=>{setActiveTab(m.id); setIsSidebarOpen(false)}} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${activeTab===m.id?'bg-white text-[#059669] font-bold shadow-sm':'text-emerald-50 hover:bg-emerald-800/40'}`}>
               <m.icon size={18}/> <span className="text-sm">{m.label}</span>
             </button>
           ))}
         </div>
       </aside>
 
-      {isSidebarOpen && <div onClick={()=>setIsSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-20 md:hidden"></div>}
+      {/* Backdrop overlay saat sidebar terbuka di HP */}
+      {isSidebarOpen && <div onClick={()=>setIsSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-20 md:hidden animate-in fade-in duration-200"></div>}
 
-      {/* MAIN */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="bg-white border-b p-4 px-6 flex justify-between items-center sticky top-0 z-10">
+      {/* AREA UTAMA */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto w-full">
+        <header className="bg-white border-b p-4 px-6 flex justify-between items-center sticky top-0 z-10 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={()=>setIsSidebarOpen(true)} className="md:hidden p-1 text-slate-600"><Menu size={24}/></button>
-            <h2 className="font-bold text-slate-800 capitalize">{activeTab}</h2>
+            <button onClick={()=>setIsSidebarOpen(true)} className="md:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition"><Menu size={24}/></button>
+            <div>
+              <h2 className="text-base md:text-xl font-bold text-slate-800 capitalize">{activeTab}</h2>
+            </div>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
+          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold shadow-xs">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> Aktif
           </div>
         </header>
 
-        <div className="p-4 md:p-8">
+        <div className="p-4 md:p-8 flex-1">
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card title="Hewan Qurban" value={hewan.length} sub={`${totalSapi} Sapi, ${totalKambing} Kambing`} color="emerald"/>
-                <Card title="Kupon Claim" value={kupon.filter(k=>k.status==='Sudah Diambil').length} sub={`Total ${kupon.length}`} color="blue"/>
-                <Card title="Mudhohi" value={mudhohi.length} sub="Peserta" color="amber"/>
-                <Card title="Saldo" value={`Rp ${(saldo/1000000).toFixed(1)}jt`} sub="Kas Panitia" color="purple"/>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <Card title="Total Hewan Qurban" value={hewan.length} sub={`${totalSapi} Sapi, ${totalKambing} Kambing`} color="emerald"/>
+                <Card title="Kupon Diclaim" value={kupon.filter(k=>k.status==='Sudah Diambil').length} sub={`Dari total ${kupon.length} kupon`} color="blue"/>
+                <Card title="Mudhohi" value={totalMudhohi} sub="Peserta qurban aktif" color="amber"/>
+                <Card title="Saldo Kas" value={`Rp ${(saldo/1000000).toFixed(1)}jt`} sub={`Masuk: Rp ${(totalMasuk/1000000).toFixed(1)}jt`} color="purple"/>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-4 rounded-xl border h-[300px] shadow-sm"><ResponsiveContainer><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label>{pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div>
-                <div className="bg-white p-4 rounded-xl border h-[300px] shadow-sm"><ResponsiveContainer><BarChart data={[{n:'Saldo', v:saldo}]}><XAxis dataKey="n"/><YAxis/><Tooltip/><Bar dataKey="v" fill="#10b981"/></BarChart></ResponsiveContainer></div>
+                <div className="bg-white p-4 rounded-xl border h-[320px] shadow-sm flex flex-col">
+                  <h4 className="font-semibold text-sm text-slate-800 mb-2">Status Penyembelihan</h4>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value" label={({name, value}) => `${name}:${value}`}>
+                          {pieData.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border h-[320px] shadow-sm flex flex-col">
+                  <h4 className="font-semibold text-sm text-slate-800 mb-2">Arus Kas Keuangan</h4>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barData} barSize={50}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="name" />
+                        <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(0)}jt`} />
+                        <Tooltip formatter={(v) => `Rp ${v.toLocaleString()}`}/>
+                        <Bar dataKey="v" fill="#059669" radius={[4, 4, 0, 0]}/>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'warga' && (
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 border-b font-bold">Database Warga</div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50"><tr><th className="p-3">ID</th><th className="p-3">Nama</th><th className="p-3">RT</th></tr></thead>
-                <tbody className="divide-y">{warga.map(w=><tr key={w.id}> <td className="p-3 font-mono text-slate-400">{w.id}</td><td className="p-3 font-semibold">{w.nama}</td><td className="p-3">{w.rt}</td></tr>)}</tbody>
-              </table>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-4 border-b font-bold text-slate-800">Database Warga</div>
+              <div className="overflow-x-auto max-h-[60vh]"><table className="w-full text-left text-sm border-collapse min-w-[400px]">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">ID</th><th className="p-3 font-semibold">Nama</th><th className="p-3">RT</th></tr></thead>
+                <tbody className="divide-y">{warga.map(w=><tr key={w.id} className="hover:bg-slate-50"><td className="p-3 font-mono text-slate-400 font-bold">{w.id}</td><td className="p-3 font-semibold text-slate-800">{w.nama}</td><td className="p-3 text-slate-600">{w.rt}</td></tr>)}</tbody>
+              </table></div>
             </div>
           )}
 
           {activeTab === 'panitia' && (
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 border-b font-bold">Data Panitia</div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50"><tr><th className="p-3">Nama</th><th className="p-3">Jabatan</th></tr></thead>
-                <tbody className="divide-y">{panitia.map(p=><tr key={p.id}><td className="p-3 font-semibold">{p.nama}</td><td className="p-3 text-blue-600">{p.peran}</td></tr>)}</tbody>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-4 border-b font-bold text-slate-800">Struktur Organisasi Panitia</div>
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">Nama</th><th className="p-3 font-semibold">Jabatan</th></tr></thead>
+                <tbody className="divide-y">{panitia.map(p=><tr key={p.id} className="hover:bg-slate-50"><td className="p-3 font-semibold text-slate-800">{p.nama}</td><td className="p-3 text-blue-600 font-medium">{p.peran}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === 'mudhohi' && (
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-4 border-b font-bold text-slate-800">Daftar Peserta Mudhohi</div>
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">Nama Mudhohi</th><th className="p-3 font-semibold">Patungan Hewan</th></tr></thead>
+                <tbody className="divide-y">{mudhohi.map(m=><tr key={m.id} className="hover:bg-slate-50"><td className="p-3 font-semibold text-slate-800">{m.nama}</td><td className="p-3"><span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-md text-xs font-bold border border-emerald-100">{m.hewan}</span></td></tr>)}</tbody>
               </table>
             </div>
           )}
 
           {activeTab === 'hewan' && (
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 border-b font-bold">Hewan Qurban</div>
-              <div className="overflow-x-auto"><table className="w-full text-left text-sm">
-                <thead className="bg-slate-50"><tr><th className="p-3">ID</th><th className="p-3">Jenis</th><th className="p-3">Status</th></tr></thead>
-                <tbody className="divide-y">{hewan.map(h=><tr key={h.id}><td className="p-3 font-bold">{h.id}</td><td className="p-3">{h.jenis}</td><td className="p-3"><span className="bg-slate-100 px-2 py-1 rounded text-xs">{h.status}</span></td></tr>)}</tbody>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-4 border-b font-bold text-slate-800">Monitoring Hewan Qurban</div>
+              <div className="overflow-x-auto max-h-[60vh]"><table className="w-full text-left text-sm min-w-[400px]">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">ID</th><th className="p-3 font-semibold">Jenis</th><th className="p-3 font-semibold">Status Lapangan</th></tr></thead>
+                <tbody className="divide-y">{hewan.map(h=><tr key={h.id} className="hover:bg-slate-50"><td className="p-3 font-mono font-bold text-slate-900">{h.id}</td><td className="p-3 font-medium text-slate-700">{h.jenis} ({h.bobot})</td><td className="p-3"><span className={`px-2.5 py-1 rounded-md text-xs font-black ${h.status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : h.status === 'Menunggu' ? 'bg-slate-100 text-slate-600' : 'bg-purple-100 text-purple-700'}`}>{h.status}</span></td></tr>)}</tbody>
               </table></div>
             </div>
           )}
 
           {activeTab === 'kupon' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
               {['Warga', 'Mudhohi'].map(t => (
                 <div key={t} className="bg-white rounded-xl border shadow-sm overflow-hidden">
-                  <div className="p-3 bg-slate-50 border-b font-bold">Kupon {t}</div>
-                  <div className="max-h-96 overflow-y-auto"><table className="w-full text-xs">
-                    <tbody className="divide-y">{kupon.filter(k=>k.tipe===t).map(k=><tr key={k.id}>
-                      <td className="p-3 font-mono">{k.id}</td><td className="p-3">{k.nama}</td>
-                      <td className="p-3"><button onClick={()=>prosesKuponDigital(k,true)} className="p-1 border rounded mr-1"><Eye size={12}/></button><button onClick={()=>prosesKuponDigital(k,false)} className="p-1 border rounded bg-emerald-50 text-emerald-600"><DownloadCloud size={12}/></button></td>
+                  <div className={`p-3 border-b font-bold ${t === 'Warga' ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}>Kupon Pembagian {t}</div>
+                  <div className="max-h-96 overflow-y-auto text-xs"><table className="w-full text-left border-collapse">
+                    <tbody className="divide-y">{kupon.filter(k=>k.tipe===t).map(k=><tr key={k.id} className="hover:bg-slate-50">
+                      <td className="p-3 font-mono font-bold text-slate-400">{k.id}</td><td className="p-3 font-medium text-slate-800">{k.nama}</td>
+                      <td className="p-3 text-right flex justify-end gap-1.5"><button onClick={()=>prosesKuponDigital(k,true)} className="p-1.5 border rounded-lg text-slate-500 bg-slate-50 hover:bg-slate-100 transition"><Eye size={14}/></button><button onClick={()=>prosesKuponDigital(k,false)} className="p-1.5 border rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition"><DownloadCloud size={14}/></button></td>
                     </tr>)}</tbody>
                   </table></div>
                 </div>
@@ -243,49 +302,52 @@ export default function App() {
           )}
 
           {activeTab === 'scan' && (
-            <div className="bg-white p-6 rounded-xl border shadow-sm text-center">
-              <div id="reader" className="mx-auto max-w-xs overflow-hidden rounded-lg bg-black mb-6"></div>
-              <div className="flex gap-2 max-w-xs mx-auto mb-4">
-                <input type="text" value={manualCode} onChange={e=>setManualCode(e.target.value)} placeholder="ID Kupon" className="flex-1 border p-2 rounded text-sm font-mono"/>
-                <button onClick={()=>prosesValidasiKupon(manualCode)} className="bg-emerald-600 text-white px-4 py-2 rounded text-sm">Cek</button>
-              </div>
-              {scanResult && <div className={`p-3 rounded-lg font-bold text-sm ${scanResult.status==='success'?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-700'}`}>{scanResult.pesan}</div>}
+            <div className="bg-white p-6 rounded-xl border shadow-sm text-center max-w-xl mx-auto animate-in zoom-in-95 duration-200">
+              <div id="reader" className="mx-auto max-w-xs overflow-hidden rounded-xl bg-black mb-6 border-2 border-dashed border-emerald-400 shadow-inner"></div>
+              <div className="mt-4"><form onSubmit={(e)=>{e.preventDefault(); prosesValidasiKupon(manualCode);}} className="flex gap-2 max-w-xs mx-auto"><input type="text" value={manualCode} onChange={e=>setManualCode(e.target.value)} placeholder="Masukkan Kode Kupon" className="flex-1 border p-2.5 rounded-lg outline-none text-sm font-mono focus:ring-2 focus:ring-emerald-500 border-slate-300 bg-white"/><button type="submit" className="bg-[#059669] text-white px-5 rounded-lg font-bold text-sm hover:bg-[#047857] transition">Validasi</button></form></div>
+              {scanResult && <div className={`mt-4 p-3 rounded-xl border text-sm font-bold animate-in fade-in ${scanResult.status==='success'?'bg-emerald-50 text-emerald-800 border-emerald-200':'bg-red-50 text-red-800 border-red-200'}`}>{scanResult.pesan}</div>}
             </div>
           )}
 
           {activeTab === 'sertifikat' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border shadow-sm p-4 h-96 flex flex-col">
-                <h4 className="font-bold mb-4">Mudhohi</h4>
-                <div className="overflow-y-auto divide-y">{mudhohi.map(m=><div key={m.id} className="py-2 flex justify-between items-center text-sm"><span>{m.nama}</span><div className="flex gap-1"><button onClick={()=>prosesSertifikat(m.nama, '', true, true)} className="p-1 border rounded"><Eye size={14}/></button><button onClick={()=>prosesSertifikat(m.nama, '', true, false)} className="p-1 border rounded bg-emerald-50 text-emerald-600"><DownloadCloud size={14}/></button></div></div>)}</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl border shadow-sm p-5 h-96 flex flex-col">
+                <h4 className="font-bold border-b pb-2 mb-3 text-emerald-800 flex items-center gap-1.5"><Award size={18}/> Berkas Sertifikat Mudhohi</h4>
+                <div className="overflow-y-auto divide-y flex-1 text-xs">{mudhohi.map(m=><div key={m.id} className="py-2.5 flex justify-between items-center"><div><p className="font-bold text-slate-800 text-sm">{m.nama}</p><p className="text-slate-400 font-mono text-[10px]">{m.id}</p></div><div className="flex gap-1.5"><button onClick={()=>prosesSertifikat(m.nama, '', true, true)} className="p-1.5 border rounded-lg bg-slate-50 hover:bg-slate-100 font-medium text-slate-600 flex items-center gap-1">Preview</button><button onClick={()=>prosesSertifikat(m.nama, '', true, false)} className="p-1.5 border rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-100 flex items-center gap-1"><DownloadCloud size={12}/> Unduh</button></div></div>)}</div>
               </div>
-              <div className="bg-white rounded-xl border shadow-sm p-4 h-96 flex flex-col">
-                <h4 className="font-bold mb-4">Panitia</h4>
-                <div className="overflow-y-auto divide-y">{panitia.map(p=><div key={p.id} className="py-2 flex justify-between items-center text-sm"><span>{p.nama}</span><div className="flex gap-1"><button onClick={()=>prosesSertifikat(p.nama, p.peran, false, true)} className="p-1 border rounded"><Eye size={14}/></button><button onClick={()=>prosesSertifikat(p.nama, p.peran, false, false)} className="p-1 border rounded bg-blue-50 text-blue-600"><DownloadCloud size={14}/></button></div></div>)}</div>
+              <div className="bg-white rounded-xl border shadow-sm p-5 h-96 flex flex-col">
+                <h4 className="font-bold border-b pb-2 mb-3 text-blue-800 flex items-center gap-1.5"><Award size={18}/> Piagam Penghargaan Panitia</h4>
+                <div className="overflow-y-auto divide-y flex-1 text-xs">{panitia.map(p=><div key={p.id} className="py-2.5 flex justify-between items-center"><div><p className="font-bold text-slate-800 text-sm">{p.nama}</p><p className="text-blue-600 font-medium text-[10px]">{p.peran}</p></div><div className="flex gap-1.5"><button onClick={()=>prosesSertifikat(p.nama, p.peran, false, true)} className="p-1.5 border rounded-lg bg-slate-50 hover:bg-slate-100 font-medium text-slate-600 flex items-center gap-1">Preview</button><button onClick={()=>prosesSertifikat(p.nama, p.peran, false, false)} className="p-1.5 border rounded-lg bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 flex items-center gap-1"><DownloadCloud size={12}/> Unduh</button></div></div>)}</div>
               </div>
             </div>
           )}
 
           {activeTab === 'uang' && (
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 bg-slate-900 text-white flex justify-between"><span>Laporan Keuangan</span><span className="text-emerald-400 font-bold">Saldo: Rp {saldo.toLocaleString()}</span></div>
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b"><tr><th className="p-3">Uraian</th><th className="p-3 text-right">Nominal</th></tr></thead>
-                <tbody className="divide-y">{keuangan.map(k=><tr key={k.id}><td className="p-3">{k.keterangan}</td><td className={`p-3 text-right font-bold ${k.jenis==='Masuk'?'text-emerald-600':'text-red-500'}`}>Rp {k.nominal.toLocaleString()}</td></tr>)}</tbody>
-              </table>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden animate-in fade-in duration-300">
+              <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+                <div><h3 className="font-bold">Laporan Anggaran Keuangan</h3><p className="text-xs text-slate-400 mt-0.5">Transparansi RAB Kurban Real-Time</p></div>
+                <div className="text-right"><span className="text-slate-400 text-xs block">Total Saldo:</span><span className="text-emerald-400 font-black text-lg">Rp {saldo.toLocaleString('id-ID')}</span></div>
+              </div>
+              <div className="p-4 bg-slate-50 border-b flex justify-end gap-2"><button onClick={exportExcel} className="bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"><DownloadCloud size={14}/> Unduh Excel</button></div>
+              <div className="overflow-x-auto"><table className="w-full text-left text-sm border-collapse min-w-[500px]">
+                <thead className="bg-slate-100 border-b text-slate-600"><tr><th className="p-3 font-semibold">Tanggal</th><th className="p-3 font-semibold">Uraian Keterangan</th><th className="p-3 font-semibold text-right">Nominal Arus</th></tr></thead>
+                <tbody className="divide-y bg-white">{keuangan.map(k=><tr key={k.id} className="hover:bg-slate-50"><td className="p-3 font-mono text-slate-400 text-xs">{k.tanggal}</td><td className="p-3 font-medium text-slate-800">{k.keterangan}</td><td className={`p-3 text-right font-bold ${k.jenis==='Masuk'?'text-emerald-600':'text-red-500'}`}>{k.jenis === 'Masuk' ? '+' : '-'} Rp {k.nominal.toLocaleString('id-ID')}</td></tr>)}</tbody>
+              </table></div>
             </div>
           )}
         </div>
       </main>
 
-      {/* PDF MODAL */}
+      {/* PDF PREVIEW MODAL */}
       {pdfPreview.isOpen && (
-        <div className="fixed inset-0 bg-black/80 flex flex-col z-50 p-2 md:p-10">
-          <div className="flex justify-between bg-white p-3 rounded-t-xl border-b">
-            <h3 className="font-bold truncate">{pdfPreview.title}</h3>
-            <button onClick={()=>setPdfPreview({isOpen:false,url:'',title:''})}><X/></button>
+        <div className="fixed inset-0 bg-black/80 flex flex-col z-50 p-3 md:p-10 animate-in fade-in duration-200">
+          <div className="flex justify-between bg-white p-3.5 rounded-t-xl border-b max-w-4xl w-full mx-auto shadow-xl">
+            <h3 className="font-bold text-slate-800 truncate text-sm md:text-base">Pratinjau Dokumen</h3>
+            <button onClick={()=>setPdfPreview({isOpen:false,url:'',title:''})} className="text-slate-400 hover:text-red-500 transition"><X size={20}/></button>
           </div>
-          <iframe src={pdfPreview.url} className="flex-1 w-full bg-white rounded-b-xl border-0" />
+          <div className="flex-1 max-w-4xl w-full mx-auto bg-slate-100 rounded-b-xl overflow-hidden shadow-inner p-1">
+            <iframe src={pdfPreview.url} className="w-full h-full border-0 bg-white" title="PDF Live Preview" />
+          </div>
         </div>
       )}
     </div>
@@ -300,12 +362,12 @@ function Card({ title, value, sub, color }) {
     purple: 'border-l-purple-500' 
   };
   return (
-    <div className={`bg-white p-4 rounded-xl border border-slate-200 border-l-4 ${colors[color]} shadow-sm flex flex-col justify-between`}>
+    <div className={`bg-white p-4 rounded-xl border border-slate-200 border-l-4 ${colors[color]} shadow-sm flex flex-col justify-between min-w-0`}>
       <div>
-        <p className="text-[10px] uppercase font-bold text-slate-500">{title}</p>
-        <h3 className="text-xl md:text-2xl font-black text-slate-800 my-1">{value}</h3>
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate">{title}</p>
+        <h3 className="text-lg md:text-2xl font-black text-slate-800 my-0.5 md:my-1 truncate">{value}</h3>
       </div>
-      <p className="text-[9px] md:text-xs text-slate-400 mt-1">{sub}</p>
+      <p className="text-[9px] md:text-xs text-slate-500 mt-1 truncate">{sub}</p>
     </div>
   );
 }
