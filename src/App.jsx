@@ -19,7 +19,6 @@ const defaultWarga = Array.from({ length: 31 }, (_, i) => ({
   id: `W-${String(i + 1).padStart(3, '0')}`,
   nama: ["Bpk. Ahmad", "Ibu Siti", "Bpk. Budi", "Ibu Ani", "Bpk. Joko", "Ibu Rina", "Bpk. Agus", "Ibu Sri", "Bpk. Hendra", "Ibu Maya", "Bpk. Dedi", "Ibu Nina", "Bpk. Yudi", "Ibu Dewi", "Bpk. Eko", "Ibu Ratna", "Bpk. Iwan", "Ibu Sari", "Bpk. Arif", "Ibu Lia", "Bpk. Rizal", "Ibu Ayu", "Bpk. Anton", "Ibu Fitri", "Bpk. Wahyu", "Ibu Dian", "Bpk. Indra", "Ibu Tari", "Bpk. Gilang", "Ibu Wati", "Bpk. Rahmat"][i] || `Warga ${i+1}`,
   rt: `RT 0${(i % 5) + 1}`,
-  wa: `0812${Math.floor(10000000 + Math.random() * 90000000)}` // Nomor dummy random
 }));
 
 const defaultMudhohi = [
@@ -34,7 +33,7 @@ const defaultPanitia = Array.from({ length: 10 }, (_, i) => ({
   id: `P-${String(i + 1).padStart(2, '0')}`,
   nama: ["H. Fulan", "Ust. Hasan", "Bpk. Zainal", "Bpk. Anwar", "Bpk. Somad", "Bpk. Qasim", "Sdr. Ilham", "Sdr. Reza", "Bpk. Yasin", "Sdr. Iqbal"][i],
   peran: i === 0 ? "Ketua Panitia" : i === 3 ? "Bendahara" : "Anggota",
-  wa: `0813${Math.floor(10000000 + Math.random() * 90000000)}`
+  kontak: `0811002200${i}`
 }));
 
 const defaultHewan = [
@@ -280,26 +279,24 @@ export default function App() {
           )}
 
           {activeTab === 'warga' && (
-  <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-    <div className="p-4 border-b font-bold text-slate-800">Database Warga</div>
-    <div className="overflow-x-auto max-h-[60vh]"><table className="w-full text-left text-sm border-collapse min-w-[500px]">
-      <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3">ID</th><th className="p-3">Nama</th><th className="p-3">RT</th><th className="p-3">WhatsApp</th></tr></thead>
-      <tbody className="divide-y">{warga.map(w=><tr key={w.id} className="hover:bg-slate-50"><td className="p-3 font-mono text-slate-400 font-bold">{w.id}</td><td className="p-3 font-semibold text-slate-800">{w.nama}</td><td className="p-3 text-slate-600">{w.rt}</td>
-      <td className="p-3"><a href={`https://wa.me/${w.wa.replace('0','62')}`} target="_blank" className="text-emerald-600 font-bold hover:underline">{w.wa}</a></td></tr>)}</tbody>
-    </table></div>
-  </div>
-)}
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b font-bold text-slate-800">Database Warga</div>
+              <div className="overflow-x-auto max-h-[60vh]"><table className="w-full text-left text-sm border-collapse min-w-[400px]">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">ID</th><th className="p-3 font-semibold">Nama</th><th className="p-3">RT</th></tr></thead>
+                <tbody className="divide-y">{warga.map(w=><tr key={w.id} className="hover:bg-slate-50"><td className="p-3 font-mono text-slate-400 font-bold">{w.id}</td><td className="p-3 font-semibold text-slate-800">{w.nama}</td><td className="p-3 text-slate-600">{w.rt}</td></tr>)}</tbody>
+              </table></div>
+            </div>
+          )}
 
           {activeTab === 'panitia' && (
-  <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-    <div className="p-4 border-b font-bold text-slate-800">Struktur Panitia</div>
-    <table className="w-full text-left text-sm border-collapse">
-      <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3">Nama</th><th className="p-3">Jabatan</th><th className="p-3">Kontak</th></tr></thead>
-      <tbody className="divide-y">{panitia.map(p=><tr key={p.id} className="hover:bg-slate-50"><td className="p-3 font-semibold text-slate-800">{p.nama}</td><td className="p-3 text-blue-600">{p.peran}</td>
-      <td className="p-3"><a href={`https://wa.me/${p.wa.replace('0','62')}`} target="_blank" className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold hover:bg-emerald-200">Chat WA</a></td></tr>)}</tbody>
-    </table>
-  </div>
-)}
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b font-bold text-slate-800">Struktur Organisasi Panitia</div>
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b text-slate-600"><tr><th className="p-3 font-semibold">Nama</th><th className="p-3 font-semibold">Jabatan</th></tr></thead>
+                <tbody className="divide-y">{panitia.map(p=><tr key={p.id} className="hover:bg-slate-50"><td className="p-3 font-semibold text-slate-800">{p.nama}</td><td className="p-3 text-blue-600 font-medium">{p.peran}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
 
           {activeTab === 'mudhohi' && (
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
