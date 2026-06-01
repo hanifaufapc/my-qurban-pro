@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, UserCog, HeartHandshake, Beef, 
   ScanLine, Ticket, Award, LineChart, 
-  ChevronDown, RefreshCw, DownloadCloud, QrCode, X, Box, CheckCircle, AlertCircle, Plus, Eye, Menu
+  X, Plus, Eye, DownloadCloud, Menu, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
@@ -14,7 +14,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 
-// --- 1. DATA BAWAAN ---
+// --- DATA BAWAAN ---
 const defaultWarga = [
   "Bpk. Ahmad", "Ibu Siti", "Bpk. Budi", "Ibu Ani", "Bpk. Joko", "Ibu Rina", "Bpk. Agus", "Ibu Sri",
   "Bpk. Hendra", "Ibu Maya", "Bpk. Dedi", "Ibu Nina", "Bpk. Yudi", "Ibu Dewi", "Bpk. Eko", "Ibu Ratna",
@@ -83,13 +83,12 @@ const menuItems = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State untuk HP
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // --- 2. STATES DATABASE ---
   const [warga, setWarga] = useState(() => JSON.parse(localStorage.getItem('sys_warga')) || defaultWarga);
   const [panitia, setPanitia] = useState(() => JSON.parse(localStorage.getItem('sys_panitia')) || defaultPanitia);
   const [mudhohi, setMudhohi] = useState(() => JSON.parse(localStorage.getItem('sys_mudhohi')) || defaultMudhohi);
-  const [hewan, setHewan] = useState(() => JSON.parse(localStorage.getItem('sys_hewan_v5')) || defaultHewan);
+  const [hewan, setHewan] = useState(() => JSON.parse(localStorage.getItem('sys_hewan_v6')) || defaultHewan);
   const [kupon, setKupon] = useState(() => JSON.parse(localStorage.getItem('sys_kupon')) || generateKupon());
   const [keuangan, setKeuangan] = useState(() => JSON.parse(localStorage.getItem('sys_keuangan')) || defaultKeuangan);
   
@@ -105,7 +104,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('sys_warga', JSON.stringify(warga)); }, [warga]);
   useEffect(() => { localStorage.setItem('sys_panitia', JSON.stringify(panitia)); }, [panitia]);
   useEffect(() => { localStorage.setItem('sys_mudhohi', JSON.stringify(mudhohi)); }, [mudhohi]);
-  useEffect(() => { localStorage.setItem('sys_hewan_v5', JSON.stringify(hewan)); }, [hewan]);
+  useEffect(() => { localStorage.setItem('sys_hewan_v6', JSON.stringify(hewan)); }, [hewan]);
   useEffect(() => { localStorage.setItem('sys_kupon', JSON.stringify(kupon)); }, [kupon]);
   useEffect(() => { localStorage.setItem('sys_keuangan', JSON.stringify(keuangan)); }, [keuangan]);
 
@@ -127,7 +126,6 @@ export default function App() {
     { name: 'Keluar', Pengeluaran: totalKeluar },
   ];
 
-  // --- 3. HANDLERS ---
   const simpanHewan = (e) => {
     e.preventDefault();
     const prefix = formHewan.jenis === 'Sapi' ? 'SAPI' : 'KMBG';
@@ -200,10 +198,9 @@ export default function App() {
     else { doc.save(`Piagam_Panitia_${p.id}.pdf`); }
   };
 
-  // --- HTML5 QR SCANNER ---
   useEffect(() => {
     if (activeTab === 'scan') {
-      const scanner = new Html5QrcodeScanner("reader", { qrbox: { width: 220, height: 220 }, fps: 5 });
+      const scanner = new Html5QrcodeScanner("reader", { qrbox: { width: 200, height: 200 }, fps: 5 });
       scanner.render((decodedText) => prosesValidasiKupon(decodedText), (error) => {});
       return () => { scanner.clear().catch(e => console.error(e)); };
     }
@@ -223,9 +220,9 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden relative">
       
-      {/* --- SIDEBAR RESPONSIVE (Slide in out di HP) --- */}
-      <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#059669] text-white flex flex-col shadow-xl z-30 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} overflow-hidden`}>
-        <div className="p-6 flex items-center justify-between border-b border-emerald-700/50">
+      {/* --- MENU UTAMA RESPONSIF FIX --- */}
+      <aside className={`fixed md:sticky top-0 bottom-0 left-0 w-64 bg-[#059669] text-white flex flex-col shadow-xl z-30 transition-transform duration-300 ease-in-out h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} overflow-hidden`}>
+        <div className="p-6 flex items-center justify-between border-b border-emerald-700/50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-amber-400 p-2 rounded-lg text-emerald-900 font-bold">Q</div>
             <div>
@@ -233,7 +230,7 @@ export default function App() {
               <p className="text-xs text-emerald-100">Manajemen Qurban</p>
             </div>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white"><X size={20} /></button>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white hover:text-amber-300 transition"><X size={22} /></button>
         </div>
         
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -249,22 +246,22 @@ export default function App() {
         </div>
       </aside>
 
-      {/* OVERLAY SIDEBAR DI MOBILE */}
-      {isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 z-20 md:hidden"></div>}
+      {/* Latar gelap saat menu kebuka di HP */}
+      {isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-20 md:hidden animate-in fade-in duration-200"></div>}
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+      {/* --- AREA KONTEN --- */}
+      <main className="flex-1 flex flex-col h-full overflow-y-auto w-full min-w-0">
+        <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex justify-between items-center sticky top-0 z-10 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-slate-600 hover:bg-slate-100 rounded-lg"><Menu size={24} /></button>
+            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition"><Menu size={24} /></button>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-slate-800 capitalize">{menuItems.find(m => m.id === activeTab)?.label || 'Menu'}</h2>
+              <h2 className="text-base md:text-xl font-bold text-slate-800 capitalize">{menuItems.find(m => m.id === activeTab)?.label || 'Menu'}</h2>
             </div>
           </div>
           <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Aktif</span>
         </header>
 
-        <div className="p-4 md:p-8">
+        <div className="p-4 md:p-8 flex-1">
           
           {/* DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -325,14 +322,14 @@ export default function App() {
           {activeTab === 'hewan' && (
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <h3 className="font-bold text-lg mb-4">Pencatatan Hewan Qurban</h3>
-              <form onSubmit={simpanHewan} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-lg">
+              <form onSubmit={simpanHewan} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 bg-slate-50 p-4 rounded-lg text-sm">
                 <select value={formHewan.jenis} onChange={e=>setFormHewan({...formHewan, jenis: e.target.value})} className="p-2 border rounded bg-white"><option value="Sapi">Sapi</option><option value="Kambing">Kambing</option></select>
                 <input type="number" placeholder="Bobot (kg)" value={formHewan.bobot} onChange={e=>setFormHewan({...formHewan, bobot: e.target.value})} className="p-2 border rounded md:col-span-2 bg-white" required />
                 <button type="submit" className="bg-[#059669] text-white p-2 rounded font-bold hover:bg-[#047857] flex justify-center items-center gap-1"><Plus size={16}/> Tambah</button>
               </form>
               <div className="overflow-x-auto max-h-[45vh] border border-slate-100 rounded-lg">
                 <table className="w-full text-left text-sm min-w-[500px]">
-                  <thead className="bg-slate-900 text-white sticky top-0"><tr><th className="p-3">ID</th><th className="p-3">Jenis</th><th className="p-3">Bobot</th><th className="p-3">Status</th><th className="p-3 text-center">QR</th></tr></thead>
+                  <thead className="bg-slate-900 text-white sticky top-0"><tr><th class="p-3">ID</th><th class="p-3">Jenis</th><th class="p-3">Bobot</th><th class="p-3">Status</th><th class="p-3 text-center">QR</th></tr></thead>
                   <tbody className="divide-y divide-slate-100">{hewan.map(h => <tr key={h.id} className="hover:bg-slate-50"><td className="p-3 font-mono font-bold">{h.id}</td><td className="p-3"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-bold">{h.jenis}</span></td><td className="p-3 text-slate-600 font-medium">{h.bobot}</td><td className="p-3"><select value={h.status} onChange={(e) => updateStatusHewan(h.id, e.target.value)} className="p-1 border rounded text-xs font-bold outline-none"><option value="Menunggu">Menunggu</option><option value="Disembelih">Disembelih</option><option value="Dikuliti">Dikuliti</option><option value="Selesai">Selesai</option></select></td><td className="p-3 flex justify-center"><button onClick={() => setQrModal({ isOpen: true, data: { id: h.id, nama: `Identitas ${h.jenis}` } })} className="bg-slate-800 text-white p-1.5 rounded hover:bg-slate-900"><QrCode size={14} /></button></td></tr>)}</tbody>
                 </table>
               </div>
@@ -347,7 +344,7 @@ export default function App() {
                 {['Warga', 'Mudhohi'].map(tipe => (
                   <div key={tipe} className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                     <h4 className={`font-bold p-3 border-b-2 ${tipe==='Warga'?'text-emerald-700 bg-emerald-50 border-emerald-500':'text-blue-700 bg-blue-50 border-blue-500'}`}>Kupon {tipe}</h4>
-                    <div className="overflow-y-auto max-h-[45vh] text-xs"><table className="w-full text-left border-collapse"><thead className="bg-slate-50 text-slate-600 border-b"><tr><th className="p-3">ID Kupon</th><th className="p-3">Nama</th><th className="p-3">Status</th><th className="p-3 text-right">Aksi</th></tr></thead><tbody className="divide-y bg-white">{kupon.filter(k=>k.tipe===tipe).map(k => <tr key={k.id} className="hover:bg-slate-50"><td className="p-3 font-mono font-bold text-slate-500">{k.id}</td><td className="p-3 font-medium">{k.nama}</td><td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${k.status==='Sudah Diambil'?'bg-emerald-100 text-emerald-700':'bg-orange-100 text-orange-700'}`}>{k.status}</span></td><td className="p-3 flex justify-end gap-1.5"><button onClick={()=>prosesKuponDigital(k, true)} className="p-1 border rounded text-slate-600 bg-slate-50 hover:bg-slate-100"><Eye size={12}/></button><button onClick={()=>prosesKuponDigital(k, false)} className="p-1 border rounded text-emerald-600 bg-emerald-50 hover:bg-emerald-100"><DownloadCloud size={12}/></button></td></tr>)}</tbody></table></div>
+                    <div className="overflow-y-auto max-h-[45vh] text-xs"><table className="w-full text-left border-collapse"><thead className="bg-slate-50 text-slate-600 border-b"><tr><th class="p-3">ID Kupon</th><th class="p-3">Nama</th><th class="p-3">Status</th><th class="p-3 text-right">Aksi</th></tr></thead><tbody className="divide-y bg-white">{kupon.filter(k=>k.tipe===tipe).map(k => <tr key={k.id} className="hover:bg-slate-50"><td className="p-3 font-mono font-bold text-slate-500">{k.id}</td><td className="p-3 font-medium">{k.nama}</td><td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${k.status==='Sudah Diambil'?'bg-emerald-100 text-emerald-700':'bg-orange-100 text-orange-700'}`}>{k.status}</span></td><td className="p-3 flex justify-end gap-1.5"><button onClick={()=>prosesKuponDigital(k, true)} className="p-1 border rounded text-slate-600 bg-slate-50 hover:bg-slate-100"><Eye size={12}/></button><button onClick={()=>prosesKuponDigital(k, false)} className="p-1 border rounded text-emerald-600 bg-emerald-50 hover:bg-emerald-100"><DownloadCloud size={12}/></button></td></tr>)}</tbody></table></div>
                   </div>
                 ))}
               </div>
@@ -373,10 +370,20 @@ export default function App() {
             <div className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in">
               <h3 className="font-bold text-lg mb-4">Cetak Sertifikat & Piagam</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {[{t:'Mudhohi', d:mudhohi, f:prosesSertifikatMudhohi, c:'text-emerald-700 bg-emerald-50 b-emerald-500'}, {t:'Panitia', d:panitia, f:prosesSertifikatPanitia, c:'text-blue-700 bg-blue-50 b-blue-500'}].map(sect => (
-                  <div key={sect.t} className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                    <h4 className={`font-bold p-3 border-b-2 ${sect.c}`}>Berkas {sect.t}</h4>
-                    <div className="overflow-y-auto max-h-[45vh] text-xs divide-y bg-white">{sect.d.map(item => <div key={item.id} className="hover:bg-slate-50 flex justify-between items-center p-3"><div className="font-semibold text-slate-800">{item.nama}</div><div className="flex gap-1"><button onClick={()=>sect.f(item, true)} className="p-1 border rounded text-slate-600 bg-slate-50 hover:bg-slate-100 flex items-center gap-1 font-medium"><Eye size={12}/> Preview</button><button onClick={()=>sect.f(item, false)} className="p-1 border rounded text-emerald-600 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-1 font-medium"><DownloadCloud size={12}/> Unduh</button></div></div>)}</div>
+                {['Mudhohi', 'Panitia'].map(tipe => (
+                  <div key={tipe} className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                    <h4 className={`font-bold p-3 border-b-2 ${tipe==='Mudhohi'?'text-emerald-700 bg-emerald-50 border-emerald-500':'text-blue-700 bg-blue-50 border-blue-500'}`}>Berkas {tipe}</h4>
+                    <div className="overflow-y-auto max-h-[45vh] text-xs divide-y bg-white">
+                      {(tipe==='Mudhohi'?mudhohi:panitia).map(item => (
+                        <div key={item.id} className="hover:bg-slate-50 flex justify-between items-center p-3">
+                          <div className="font-semibold text-slate-800">{item.nama}</div>
+                          <div className="flex gap-1">
+                            <button onClick={()=>(tipe==='Mudhohi'?prosesSertifikatMudhohi(item, true):prosesSertifikatPanitia(item, true))} className="p-1 border rounded text-slate-600 bg-slate-50 hover:bg-slate-100 flex items-center gap-1 font-medium"><Eye size={12}/> Preview</button>
+                            <button onClick={()=>(tipe==='Mudhohi'?prosesSertifikatMudhohi(item, false):prosesSertifikatPanitia(item, false))} className="p-1 border rounded text-emerald-600 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-1 font-medium"><DownloadCloud size={12}/> Unduh</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -394,7 +401,7 @@ export default function App() {
                 <div className="md:col-span-4 flex justify-end"><button type="submit" className="bg-[#059669] text-white px-4 py-2 rounded text-xs font-bold hover:bg-[#047857]">Simpan</button></div>
               </form>
               <div className="overflow-x-auto border border-slate-100 rounded-lg text-xs">
-                <table className="w-full text-left min-w-[500px]"><thead className="bg-slate-100 text-slate-700"><tr><th className="p-3">Tanggal</th><th className="p-3">Uraian</th><th className="p-3">Jenis</th><th className="p-3 text-right">Nominal</th></tr></thead><tbody className="divide-y">{keuangan.map((k) => <tr key={k.id} className="hover:bg-slate-50"><td className="p-3 text-slate-500">{k.tanggal}</td><td className="p-3 font-medium text-slate-800">{k.keterangan}</td><td className="p-3"><span className={`px-2 py-0.5 rounded font-bold text-[10px] ${k.jenis==='Masuk'?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700'}`}>{k.jenis}</span></td><td className={`p-3 text-right font-bold ${k.jenis==='Masuk'?'text-emerald-600':'text-red-600'}`}>Rp {k.nominal.toLocaleString('id-ID')}</td></tr>)}</tbody><tfoot className="bg-slate-900 text-white font-bold text-sm"><tr><td colSpan="3" className="p-3 text-right">TOTAL SALDO:</td><td className="p-3 text-right text-emerald-400">Rp {saldo.toLocaleString('id-ID')}</td></tr></tfoot></table>
+                <table className="w-full text-left min-w-[500px]"><thead className="bg-slate-100 text-slate-700"><tr><th class="p-3">Tanggal</th><th class="p-3">Uraian</th><th class="p-3">Jenis</th><th class="p-3 text-right">Nominal</th></tr></thead><tbody className="divide-y">{keuangan.map((k) => <tr key={k.id} className="hover:bg-slate-50"><td className="p-3 text-slate-500">{k.tanggal}</td><td className="p-3 font-medium text-slate-800">{k.keterangan}</td><td className="p-3"><span className={`px-2 py-0.5 rounded font-bold text-[10px] ${k.jenis==='Masuk'?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700'}`}>{k.jenis}</span></td><td className={`p-3 text-right font-bold ${k.jenis==='Masuk'?'text-emerald-600':'text-red-600'}`}>Rp {k.nominal.toLocaleString('id-ID')}</td></tr>)}</tbody><tfoot className="bg-slate-900 text-white font-bold text-sm"><tr><td colSpan="3" className="p-3 text-right">TOTAL SALDO:</td><td className="p-3 text-right text-emerald-400">Rp {saldo.toLocaleString('id-ID')}</td></tr></tfoot></table>
               </div>
             </div>
           )}
@@ -402,7 +409,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* --- MODAL LABEL QR --- */}
+      {/* MODAL QR CODE */}
       {qrModal.isOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center relative animate-in zoom-in duration-200">
@@ -415,7 +422,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- MODAL PDF PREVIEW --- */}
+      {/* MODAL PDF PREVIEW */}
       {pdfPreview.isOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-50 p-3 md:p-6">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-full max-h-[80vh] flex flex-col overflow-hidden relative animate-in zoom-in duration-200">
@@ -425,6 +432,18 @@ export default function App() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function Card({ title, value, sub, icon, border }) {
+  return (
+    <div className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm ${border} flex flex-col justify-between`}>
+      <div className="flex justify-between items-start mb-2">
+        <div><p className="text-slate-500 text-[10px] md:text-sm font-medium">{title}</p><h3 className="text-lg md:text-3xl font-bold text-slate-800 mt-1">{value}</h3></div>
+        <div className="p-1 md:p-2 bg-slate-50 rounded-lg border border-slate-100">{icon}</div>
+      </div>
+      <p className="text-[9px] md:text-xs text-slate-400 truncate">{sub}</p>
     </div>
   );
 }
