@@ -92,13 +92,18 @@ export default function App() {
     localStorage.setItem('sys_keuangan', JSON.stringify(keuangan));
   }, [hewan, kupon, keuangan]);
 
+// Bagian Kalkulasi Dashboard (Ganti bagian ini)
   const totalSapi = hewan.filter(h => h.jenis === 'Sapi').length;
   const totalKambing = hewan.filter(h => h.jenis === 'Kambing').length;
-  const saldo = keuangan.reduce((acc, curr) => curr.jenis === 'Masuk' ? acc + curr.nominal : acc - curr.nominal, 0);
+  const totalMudhohi = mudhohi.length;
+  const totalMasuk = keuangan.filter(k => k.jenis === 'Masuk').reduce((acc, curr) => acc + curr.nominal, 0);
+  const totalKeluar = keuangan.filter(k => k.jenis === 'Keluar').reduce((acc, curr) => acc + curr.nominal, 0);
+  const saldo = totalMasuk - totalKeluar;
 
   const pieData = [
     { name: 'Selesai', value: hewan.filter(h=>h.status==='Selesai').length, color: '#10b981' },
-    { name: 'Proses', value: hewan.filter(h=>['Disembelih','Dikuliti'].includes(h.status)).length, color: '#8b5cf6' },
+    { name: 'Dikuliti', value: hewan.filter(h=>h.status==='Dikuliti').length, color: '#8b5cf6' },
+    { name: 'Disembelih', value: hewan.filter(h=>h.status==='Disembelih').length, color: '#f59e0b' },
     { name: 'Menunggu', value: hewan.filter(h=>h.status==='Menunggu').length, color: '#94a3b8' },
   ].filter(d => d.value > 0);
 
@@ -288,12 +293,19 @@ export default function App() {
 }
 
 function Card({ title, value, sub, color }) {
-  const colors = { emerald: 'border-l-emerald-500', blue: 'border-l-blue-500', amber: 'border-l-amber-500', purple: 'border-l-purple-500' };
+  const colors = { 
+    emerald: 'border-l-emerald-500', 
+    blue: 'border-l-blue-500', 
+    amber: 'border-l-amber-500', 
+    purple: 'border-l-purple-500' 
+  };
   return (
-    <div className={`bg-white p-4 rounded-xl border border-slate-200 border-l-4 ${colors[color]} shadow-sm`}>
-      <p className="text-[10px] uppercase font-bold text-slate-500">{title}</p>
-      <h3 className="text-xl md:text-2xl font-black text-slate-800 my-1">{value}</h3>
-      <p className="text-[9px] text-slate-400">{sub}</p>
+    <div className={`bg-white p-4 rounded-xl border border-slate-200 border-l-4 ${colors[color]} shadow-sm flex flex-col justify-between`}>
+      <div>
+        <p className="text-[10px] uppercase font-bold text-slate-500">{title}</p>
+        <h3 className="text-xl md:text-2xl font-black text-slate-800 my-1">{value}</h3>
+      </div>
+      <p className="text-[9px] md:text-xs text-slate-400 mt-1">{sub}</p>
     </div>
   );
 }
